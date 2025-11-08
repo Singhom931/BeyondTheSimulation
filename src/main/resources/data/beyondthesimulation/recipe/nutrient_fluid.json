@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:milk_bucket",
+    "minecraft:potion",
+    "minecraft:sugar"
+  ],
+  "result": {
+    "id": "beyondthesimulation:nutrient_fluid",
+    "count": 1
+  }
+}
