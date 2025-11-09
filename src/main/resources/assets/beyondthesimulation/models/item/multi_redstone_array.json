@@ -1,3 +1,6 @@
 {
-  "parent": "beyondthesimulation:block/multi_redstone_array"
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "beyondthesimulation:item/multi_redstone_array"
+  }
 }

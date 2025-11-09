@@ -90,7 +90,7 @@ public class MultiRedstoneArrayScreen extends HandledScreen<MultiRedstoneArraySc
         super.render(drawContext, mouseX, mouseY, delta);
     }
 
-    private static final Identifier TEXTURE = Identifier.of( beyondthesimulation.MOD_ID, "textures/gui/multi_redstone_array.png");
+//    private static final Identifier TEXTURE = Identifier.of( beyondthesimulation.MOD_ID, "textures/gui/multi_redstone_array.png");
 
     @Override
     protected void drawBackground(DrawContext drawContext, float delta, int mouseX, int mouseY) {
