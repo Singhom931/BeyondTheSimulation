@@ -1,5 +1,6 @@
 package com.diablo931.block;
 
+import com.diablo931.network.WSClient;
 import com.diablo931.util.TickableBlockEntity;
 import net.minecraft.block.RedstoneWireBlock;
 import net.minecraft.block.entity.BlockEntity;
@@ -18,6 +19,7 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.entity.player.PlayerEntity;
 
 import java.io.InputStream;
+import java.net.http.WebSocket;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.UUID;
@@ -49,6 +51,7 @@ private static final Map<Direction, String> MC_TO_API = Map.of(
     private int failedAttempts = 0;
     private UUID uniqueId = UUID.randomUUID();
     private int tickCounter = 0;
+    private WSClient wsClient;
 
 //    private String uniqueId = java.util.UUID.randomUUID().toString().replace("-", "");
 
@@ -61,22 +64,38 @@ private static final Map<Direction, String> MC_TO_API = Map.of(
     public void setUrl(String url) { this.url = url; markDirty(); }
 
 
+    // Add this at the top of your class (after other fields)
+    public enum Mode {
+        HTTP,
+        WEB_STOCK
+    }
+
+    private Mode mode = Mode.HTTP; // default mode
+
+    public Mode getMode() {
+        return mode;
+    }
+
+    public void setMode(Mode mode) {
+        this.mode = mode;
+        markDirty();
+    }
+
     @Override
     protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         super.readNbt(nbt, registries);
-        url = nbt.getString("url"); // load your custom field
-        if (nbt.contains("UniqueId")) {
-            uniqueId = nbt.getUuid("UniqueId");
-        }
+        url = nbt.getString("url");
+        if (nbt.contains("UniqueId")) uniqueId = nbt.getUuid("UniqueId");
+        if (nbt.contains("mode")) mode = Mode.valueOf(nbt.getString("mode")); // <-- load mode
     }
 
     @Override
     protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         super.writeNbt(nbt, registries);
-        nbt.putString("url", url == null ? "" : url); // save your custom field
+        nbt.putString("url", url == null ? "" : url);
         nbt.putUuid("UniqueId", uniqueId);
+        nbt.putString("mode", mode.name()); // <-- save mode
     }
-
 
     @Override
     public Text getDisplayName() {
@@ -124,66 +143,110 @@ private static final Map<Direction, String> MC_TO_API = Map.of(
         }
     }
 
+    private void initWebSocketIfNeeded() {
+        if (url != null && url.startsWith("ws://") && (wsClient == null || wsClient.isClosed())) {
+            wsClient = new WSClient();
+            try {
+                wsClient.connect(url);
+                System.out.println("[WS] Connected to " + url);
+            } catch (Exception e) {
+                System.out.println("[WS] Failed to connect: " + e);
+            }
+        }
+    }
+
+    public void syncToClient() {
+        if (world != null && !world.isClient) {
+            world.updateListeners(pos, getCachedState(), getCachedState(), 3);
+        }
+    }
+
     private void fetchServerOutputs() {
         if (url.isEmpty() || world == null || world.isClient) return;
 
-        CompletableFuture.runAsync(() -> {
-            java.net.HttpURLConnection con = null;
-            try {
-                String fullUrl = url + (url.contains("?") ? "&" : "?") + "uuid=" + uniqueId;
-                java.net.URL u = new java.net.URL(fullUrl);
-                con = (java.net.HttpURLConnection) u.openConnection();
-                con.setRequestMethod("GET");
-                con.setConnectTimeout(3000);
-                con.setReadTimeout(3000);
+        // Validate URL protocol
+        if (!(url.startsWith("http://") || url.startsWith("https://") || url.startsWith("ws://"))) {
+            System.out.println("[ERROR] Invalid URL: " + url);
+            return;
+        }
 
-                int responseCode = con.getResponseCode();
-                if (responseCode >= 200 && responseCode < 300) {
-                    try (InputStream is = con.getInputStream()) {
-                        String response = new String(is.readAllBytes());
-                        System.out.println("[GET] Response for " + pos + ": " + response);
+        // HTTP logic
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            CompletableFuture.runAsync(() -> {
+                java.net.HttpURLConnection con = null;
+                try {
+                    String fullUrl = url + (url.contains("?") ? "&" : "?") + "uuid=" + uniqueId;
+                    java.net.URL u = new java.net.URL(fullUrl);
+                    con = (java.net.HttpURLConnection) u.openConnection();
+                    con.setRequestMethod("GET");
+                    con.setConnectTimeout(3000);
+                    con.setReadTimeout(3000);
 
-                        com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(response).getAsJsonObject();
-
-                        if (json.has(uniqueId.toString())) {
-                            com.google.gson.JsonObject outputSignals_json = json.getAsJsonObject(uniqueId.toString());
-
-                            // Run updates on server thread to safely modify blocks
-                            if (world != null && !world.isClient) {
-                                world.getServer().execute(() -> {
-                                    for (Map.Entry<String, com.google.gson.JsonElement> entry : outputSignals_json.entrySet()) {
-                                        String apiDir = entry.getKey().toLowerCase();
-                                        Direction dir = API_TO_MC.get(apiDir);
-                                        if (dir != null) {
-                                            int newPower = entry.getValue().getAsInt();
-                                            int oldPower = outputSignals.getOrDefault(dir, 0);
-                                            if (oldPower != newPower) {
-                                                System.out.println("[UPDATE] " + dir + " power: " + oldPower + " → " + newPower);
-                                                setPowerForDirection(dir, newPower);
-                                                updateNeighborRedstone(dir, newPower);
-                                            }
-                                        }
-                                    }
-                                });
-                            }
-                        } else {
-                            System.out.println("[WARN] No data for UUID " + uniqueId + " in response.");
+                    int responseCode = con.getResponseCode();
+                    if (responseCode >= 200 && responseCode < 300) {
+                        try (InputStream is = con.getInputStream()) {
+                            String response = new String(is.readAllBytes());
+                            processServerJson(response);
                         }
+                    } else {
+                        System.out.println("[ERROR] GET failed with response code: " + responseCode);
+                        markFailed();
                     }
-                } else {
-                    System.out.println("[ERROR] GET failed with response code: " + responseCode);
+                } catch (Exception e) {
+                    System.out.println("[ERROR] Exception during GET: " + e);
                     markFailed();
+                } finally {
+                    if (con != null) con.disconnect();
                 }
-            } catch (Exception e) {
-                System.out.println("[ERROR] Exception during GET: " + e);
-                markFailed();
-            } finally {
-                if (con != null) con.disconnect();
+            });
+        }
+        // WebSocket logic
+        else if (url.startsWith("ws://")) {
+            // Ensure WS connection is active
+            initWebSocketIfNeeded();
+
+            if (wsClient != null) {
+                // send payload
+                String payload = buildJsonPayload();
+                wsClient.send(payload);
+                System.out.println("[WS] Sent payload: " + payload);
             }
-        });
+        }
     }
 
+    // Shared method to process JSON for both HTTP and WebSocket
+    private void processServerJson(String response) {
+        try {
+            com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(response).getAsJsonObject();
 
+            if (!json.has(uniqueId.toString())) {
+                System.out.println("[WARN] No data for UUID " + uniqueId);
+                return;
+            }
+
+            com.google.gson.JsonObject outputSignals_json = json.getAsJsonObject(uniqueId.toString());
+
+            if (world != null && !world.isClient) {
+                world.getServer().execute(() -> {
+                    for (Map.Entry<String, com.google.gson.JsonElement> entry : outputSignals_json.entrySet()) {
+                        String apiDir = entry.getKey().toLowerCase();
+                        Direction dir = API_TO_MC.get(apiDir);
+                        if (dir != null) {
+                            int newPower = entry.getValue().getAsInt();
+                            int oldPower = outputSignals.getOrDefault(dir, 0);
+                            if (oldPower != newPower) {
+                                System.out.println("[UPDATE] " + dir + " power: " + oldPower + " → " + newPower);
+                                setPowerForDirection(dir, newPower);
+                                updateNeighborRedstone(dir, newPower);
+                            }
+                        }
+                    }
+                });
+            }
+        } catch (Exception e) {
+            System.out.println("[ERROR] Failed to parse JSON: " + e);
+        }
+    }
 
     private boolean inputSignalsChanged() {
         // Compare current input directions with last sent values
@@ -297,6 +360,4 @@ private static final Map<Direction, String> MC_TO_API = Map.of(
             world.updateNeighbors(pos, this.getCachedState().getBlock());
             world.updateNeighborsAlways(neighborPos, neighbor.getBlock());
     }
-
-
 }
