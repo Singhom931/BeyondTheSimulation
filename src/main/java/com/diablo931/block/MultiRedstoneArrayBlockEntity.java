@@ -1,9 +1,6 @@
 package com.diablo931.block;
 
-import com.diablo931.network.RedstoneWebSocketClient;
 import com.diablo931.util.TickableBlockEntity;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import net.minecraft.block.RedstoneWireBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.BlockState;
@@ -37,24 +34,6 @@ private static final Map<String, Direction> API_TO_MC = Map.of(
         "west", Direction.EAST
 );
 
-    public void handleServerResponse(String message) {
-        try {
-            JsonObject json = JsonParser.parseString(message).getAsJsonObject();
-            JsonObject signals = json.getAsJsonObject("signals");
-            int north = signals.get("north").getAsInt();
-            int east = signals.get("east").getAsInt();
-            int south = signals.get("south").getAsInt();
-            int west = signals.get("west").getAsInt();
-
-            // Apply signals (example)
-            System.out.println("[WS] Updating signals: N=" + north + " E=" + east + " S=" + south + " W=" + west);
-            // You can update your redstone output here.
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
 private static final Map<Direction, String> MC_TO_API = Map.of(
         Direction.NORTH, "north",
         Direction.SOUTH, "south",
@@ -71,15 +50,8 @@ private static final Map<Direction, String> MC_TO_API = Map.of(
     private UUID uniqueId = UUID.randomUUID();
     private int tickCounter = 0;
 
-    private ConnectionMode connectionMode = ConnectionMode.HTTP;
-    private RedstoneWebSocketClient wsClient;
-
 //    private String uniqueId = java.util.UUID.randomUUID().toString().replace("-", "");
 
-    public enum ConnectionMode {
-        HTTP,
-        WEBSOCKET
-    }
 
     public MultiRedstoneArrayBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.MULTI_REDSTONE_ARRAY_ENTITY, pos, state);
@@ -88,35 +60,22 @@ private static final Map<Direction, String> MC_TO_API = Map.of(
     public String getUrl() { return url; }
     public void setUrl(String url) { this.url = url; markDirty(); }
 
-    public ConnectionMode getConnectionMode() {
-        return connectionMode;
-    }
-
-    public void setConnectionMode(ConnectionMode mode) {
-        this.connectionMode = mode;
-        markDirty();
-    }
 
     @Override
     protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         super.readNbt(nbt, registries);
-        url = nbt.getString("url");
+        url = nbt.getString("url"); // load your custom field
         if (nbt.contains("UniqueId")) {
             uniqueId = nbt.getUuid("UniqueId");
-        }
-        if (nbt.contains("ConnectionMode")) {
-            connectionMode = ConnectionMode.valueOf(nbt.getString("ConnectionMode"));
         }
     }
 
     @Override
     protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         super.writeNbt(nbt, registries);
-        nbt.putString("url", url == null ? "" : url);
+        nbt.putString("url", url == null ? "" : url); // save your custom field
         nbt.putUuid("UniqueId", uniqueId);
-        nbt.putString("ConnectionMode", connectionMode.name());
     }
-
 
 
     @Override
@@ -130,16 +89,6 @@ private static final Map<Direction, String> MC_TO_API = Map.of(
             // Stop trying temporarily or log a message
             failedAttempts = 0;
             System.out.println("Block at " + pos + " failed to reach URL: " + url);
-        }
-    }
-
-    @Override
-    public void markRemoved() {
-        super.markRemoved();
-        if (wsClient != null) {
-            try {
-                wsClient.close();
-            } catch (Exception ignored) {}
         }
     }
 
@@ -159,52 +108,19 @@ private static final Map<Direction, String> MC_TO_API = Map.of(
         markDirty();
     }
 
-    @Override
     public void tick() {
+//        System.out.println("[DEBUG] Tick called at " + pos + " URL: " + be.getUrl());
         if (world == null || world.isClient) return;
-
         tickCounter++;
-
-        // --- Handle WebSocket mode ---
-        if (connectionMode == ConnectionMode.WEBSOCKET) {
-            try {
-                // Create connection if not open
-                if (wsClient == null || !wsClient.isOpen()) {
-                    if (url == null || url.isEmpty()) return;
-                    System.out.println("[WS] Connecting to " + url);
-                    wsClient = new RedstoneWebSocketClient(new java.net.URI(url), this);
-                    wsClient.connect();
-                    return; // Wait for connection to open
-                }
-
-                // Periodically refresh signals from world
-                if (tickCounter % 2 == 0) {
-                    updateSignalsFromWorld();
-                }
-
-                // If redstone input changed, send an update
-                if (inputSignalsChanged()) {
-                    String payload = buildJsonPayload();
-                    System.out.println("[WS] Sending: " + payload);
-                    wsClient.send(payload);
-                }
-
-            } catch (Exception e) {
-                System.out.println("[WS] Error: " + e.getMessage());
-            }
-
-            return; // Do not run HTTP code if WS mode is active
-        }
-
-        // --- Handle HTTP mode ---
-        if (tickCounter % 2 == 0) { // Poll every 2 ticks
+        if (tickCounter % 2 == 0) { // approx every 2 redstone ticks
             updateSignalsFromWorld();
+//            System.out.println("Ticking MultiRedstoneArray at " + pos + " with URL: " + url);
             fetchServerOutputs();
         }
-
         if (inputSignalsChanged()) {
-            System.out.println("[HTTP] Sending to " + url);
+            System.out.println("Ticking MultiRedstoneArray at " + pos + " with URL: " + url);
             sendSignalsToServer();
+            System.out.println("Redstone Updated");
         }
     }
 
@@ -331,7 +247,7 @@ private static final Map<Direction, String> MC_TO_API = Map.of(
         });
     }
 
-    public String buildJsonPayload() {
+    private String buildJsonPayload() {
         StringBuilder signalsJson = new StringBuilder();
         signalsJson.append("{");
 
