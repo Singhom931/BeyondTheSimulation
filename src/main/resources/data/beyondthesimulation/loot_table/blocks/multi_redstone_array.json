@@ -2,18 +2,18 @@
   "type": "minecraft:block",
   "pools": [
     {
-      "rolls": 1,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
       "entries": [
         {
           "type": "minecraft:item",
           "name": "beyondthesimulation:multi_redstone_array"
         }
       ],
-      "conditions": [
-        {
-          "condition": "minecraft:survives_explosion"
-        }
-      ]
+      "rolls": 1
     }
   ]
 }
