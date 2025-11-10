@@ -145,7 +145,10 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
 
     private void initWebSocketIfNeeded() {
         if (url != null && url.startsWith("ws://") && (wsClient == null || wsClient.isClosed())) {
-            wsClient = new WSClient();
+            wsClient = new WSClient(response -> {
+                // Handle incoming WebSocket data (same as HTTP response)
+                processServerJson(response);
+            });
             try {
                 wsClient.connect(url);
                 System.out.println("[WS] Connected to " + url);

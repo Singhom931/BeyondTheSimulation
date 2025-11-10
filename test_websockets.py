@@ -28,14 +28,14 @@ async def handle_client(websocket):
             if uuid == master_uuid:
                 master_signals = signals.copy()
                 print(f"[MASTER UPDATE] {master_signals}")
-                # broadcast to all other clients
+                # broadcast to all other clients (wrap in their UUID for compatibility)
                 for other_uuid, ws in clients.items():
                     if other_uuid != master_uuid:
                         try:
-                            await ws.send(json.dumps(master_signals))
+                            await ws.send(json.dumps({other_uuid: master_signals}))
                         except Exception as e:
                             print(f"[!] Error sending to {other_uuid}: {e}")
-                state[uuid] = {k: 0 for k in ["north","east","south","west"]}  # master outputs 0
+
             else:
                 # Non-master: override their output with master signals if available
                 if master_signals:

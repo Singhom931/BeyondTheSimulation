@@ -3,11 +3,16 @@ package com.diablo931.network;
 import java.net.URI;
 import java.net.http.WebSocket;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 public class WSClient implements WebSocket.Listener {
     private WebSocket ws;
     private boolean open = false;
+    private Consumer<String> onMessage;
+
+    public WSClient(Consumer<String> onMessage) {
+        this.onMessage = onMessage;
+    }
 
     public void connect(String url) {
         ws = java.net.http.HttpClient.newHttpClient()
@@ -24,15 +29,16 @@ public class WSClient implements WebSocket.Listener {
 
     @Override
     public void onOpen(WebSocket webSocket) {
-        System.out.println("[WS] onOpen");
         open = true;
+        System.out.println("[WS] onOpen");
         WebSocket.Listener.super.onOpen(webSocket);
     }
 
     @Override
     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-        System.out.println("[WS RECV] " + data);
-        // TODO: parse JSON and update outputSignals on server thread
+        String msg = data.toString();
+        System.out.println("[WS RECV] " + msg);
+        if (onMessage != null) onMessage.accept(msg);
         return WebSocket.Listener.super.onText(webSocket, data, last);
     }
 
@@ -50,6 +56,10 @@ public class WSClient implements WebSocket.Listener {
     }
 
     public void send(String message) {
-        if (ws != null && open) ws.sendText(message, true);
+        if (ws != null && open) {
+            ws.sendText(message, true);
+        } else {
+            System.out.println("[WS] Tried to send but not open");
+        }
     }
 }
