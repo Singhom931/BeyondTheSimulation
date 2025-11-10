@@ -1,6 +1,7 @@
 package com.diablo931.block;
 
 import com.diablo931.util.TickableBlockEntity;
+import net.minecraft.block.Block;
 import net.minecraft.block.RedstoneWireBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.BlockState;
@@ -50,6 +51,8 @@ private static final Map<Direction, String> MC_TO_API = Map.of(
     private UUID uniqueId = UUID.randomUUID();
     private int tickCounter = 0;
 
+    private int stage = 0;
+    private volatile boolean api_is_working = true;
 //    private String uniqueId = java.util.UUID.randomUUID().toString().replace("-", "");
 
 
@@ -111,6 +114,16 @@ private static final Map<Direction, String> MC_TO_API = Map.of(
     public void tick() {
 //        System.out.println("[DEBUG] Tick called at " + pos + " URL: " + be.getUrl());
         if (world == null || world.isClient) return;
+        if (api_is_working) {
+            if (world.getTime() % 10 == 0) {
+
+                stage = (stage + 1) % 2;
+                BlockState state = getCachedState();
+                if (state.contains(MultiRedstoneArrayBlock.STAGE)) {
+                    world.setBlockState(pos, state.with(MultiRedstoneArrayBlock.STAGE, this.stage), Block.NOTIFY_ALL);
+                }
+            }
+        }
         tickCounter++;
         if (tickCounter % 2 == 0) { // approx every 2 redstone ticks
             updateSignalsFromWorld();

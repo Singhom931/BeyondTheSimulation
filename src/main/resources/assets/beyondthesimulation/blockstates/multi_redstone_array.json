@@ -1,7 +1,10 @@
 {
   "variants": {
-    "":{
+    "stage=0":{
       "model": "beyondthesimulation:block/multi_redstone_array"
+    },
+    "stage=1":{
+      "model": "beyondthesimulation:block/multi_redstone_array_2"
     }
   }
 }

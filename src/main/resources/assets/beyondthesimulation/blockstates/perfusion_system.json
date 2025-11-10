@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "":{
+      "model": "beyondthesimulation:block/perfusion_system"
+    }
+  }
+}

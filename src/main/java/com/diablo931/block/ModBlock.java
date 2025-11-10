@@ -23,7 +23,7 @@ public class ModBlock {
     }
 
     public static final Block MULTI_REDSTONE_ARRAY =  register("multi_redstone_array", MultiRedstoneArrayBlock::new, AbstractBlock.Settings.create().strength(1.5f,4f).sounds(BlockSoundGroup.WART_BLOCK).nonOpaque(), true);
-    public static final Block PERFUSION_SYSTEM =  register("perfusion_system", Block::new, AbstractBlock.Settings.create().strength(1.5f,4f).sounds(BlockSoundGroup.HONEY), true);
+    public static final Block PERFUSION_SYSTEM =  register("perfusion_system", PerfusionSystemBlock::new, AbstractBlock.Settings.create().strength(1.5f,4f).sounds(BlockSoundGroup.HONEY), true);
 
     private static Block register(String name, Function<AbstractBlock.Settings, Block> blockFactory, AbstractBlock.Settings settings, boolean shouldRegisterItem) {
         // Create a registry key for the block

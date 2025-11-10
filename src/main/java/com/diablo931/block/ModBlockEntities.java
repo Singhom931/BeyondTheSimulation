@@ -14,6 +14,10 @@ public class ModBlockEntities {
     public static final BlockEntityType<MultiRedstoneArrayBlockEntity> MULTI_REDSTONE_ARRAY_ENTITY =
             register("multi_redstone_array", MultiRedstoneArrayBlockEntity::new, ModBlock.MULTI_REDSTONE_ARRAY);
 
+    public static final BlockEntityType<PerfusionSystemBlockEntity> PERFUSION_SYSTEM_ENTITY =
+            register("perfusion_system", PerfusionSystemBlockEntity::new, ModBlock.PERFUSION_SYSTEM);
+
+
     private static <T extends BlockEntity> BlockEntityType<T> register(
             String name,
             FabricBlockEntityTypeBuilder.Factory<? extends T> entityFactory,

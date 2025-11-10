@@ -9,6 +9,8 @@ import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.screen.NamedScreenHandlerFactory;
+import net.minecraft.state.StateManager;
+import net.minecraft.state.property.IntProperty;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -24,8 +26,17 @@ import org.jetbrains.annotations.Nullable;
 
 public class MultiRedstoneArrayBlock extends BlockWithEntity {
 
-public MultiRedstoneArrayBlock(Settings settings) {
+    public static final IntProperty STAGE = IntProperty.of("stage", 0, 1);
+
+
+    public MultiRedstoneArrayBlock(Settings settings) {
         super(settings);
+        this.setDefaultState(this.stateManager.getDefaultState().with(STAGE, 0));
+    }
+
+    @Override
+    protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
+        builder.add(STAGE);
     }
 
     @Override
