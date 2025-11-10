@@ -22,13 +22,13 @@ public class ModScreenHandlers {
     public static void initialize() {
         MULTI_REDSTONE_ARRAY_HANDLER =
                 Registry.register(
-                Registries.SCREEN_HANDLER,
-                Identifier.of(beyondthesimulation.MOD_ID, "multi_redstone_array"),
-                new ScreenHandlerType<MultiRedstoneArrayScreenHandler>(
-                        (int syncId, PlayerInventory inv) -> new MultiRedstoneArrayScreenHandler(syncId, (PlayerInventory) inv),
-                        FeatureSet.empty()
-                )
-        );
+                        Registries.SCREEN_HANDLER,
+                        Identifier.of(beyondthesimulation.MOD_ID, "multi_redstone_array"),
+                        new ScreenHandlerType<MultiRedstoneArrayScreenHandler>(
+                                (int syncId, PlayerInventory inv) -> new MultiRedstoneArrayScreenHandler(syncId, (PlayerInventory) inv),
+                                FeatureSet.empty()
+                        )
+                );
     }
 //
 //    private static <T extends ScreenHandler> ScreenHandlerType<T> register(

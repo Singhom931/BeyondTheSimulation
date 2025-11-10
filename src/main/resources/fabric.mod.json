@@ -4,8 +4,11 @@
   "version": "${version}",
   "name": "BeyondTheSimulation",
   "description": "",
-  "authors": [],
-  "contact": {},
+  "authors": ["Singhom931/Diablo931, RikGDI"],
+  "contact": {
+    "homepage": "https://github.com/Singhom931/BeyondTheSimulation",
+    "sources": "https://github.com/Singhom931/BeyondTheSimulation"
+  },
   "license": "All-Rights-Reserved",
   "icon": "assets/beyondthesimulation/icon.png",
   "environment": "*",
