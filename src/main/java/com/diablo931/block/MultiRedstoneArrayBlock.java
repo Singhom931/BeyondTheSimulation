@@ -24,7 +24,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class MultiRedstoneArrayBlock extends BlockWithEntity {
 
-public MultiRedstoneArrayBlock(Settings settings) {
+    public MultiRedstoneArrayBlock(Settings settings) {
         super(settings);
     }
 

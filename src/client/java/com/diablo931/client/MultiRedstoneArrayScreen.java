@@ -3,6 +3,7 @@ package com.diablo931.client;
 import com.diablo931.block.MultiRedstoneArrayBlockEntity;
 import com.diablo931.network.C2SUpdateUrlPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 
@@ -21,10 +22,11 @@ import net.minecraft.util.math.BlockPos;
 
 public class MultiRedstoneArrayScreen extends HandledScreen<MultiRedstoneArrayScreenHandler> {
 
+    private BlockPos pos;
+    private MultiRedstoneArrayBlockEntity be;
     private TextFieldWidget urlField;
     private ButtonWidget applyButton;
-    BlockPos pos = LastClickedBlockTracker.getLastClickedPos();
-    MultiRedstoneArrayBlockEntity be =(MultiRedstoneArrayBlockEntity) MinecraftClient.getInstance().world.getBlockEntity(pos);
+    private ButtonWidget modeButton;
 
 
     public MultiRedstoneArrayScreen(MultiRedstoneArrayScreenHandler handler, PlayerInventory inv, Text title) {
@@ -35,58 +37,70 @@ public class MultiRedstoneArrayScreen extends HandledScreen<MultiRedstoneArraySc
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (this.urlField.keyPressed(keyCode, scanCode, modifiers) || this.urlField.isActive()) {
-            return true;
-        }
+        if (urlField.keyPressed(keyCode, scanCode, modifiers) || urlField.isActive()) return true;
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean charTyped(char chr, int keyCode) {
-        if (this.urlField.charTyped(chr, keyCode)) {
-            return true;
-        }
+        if (urlField.charTyped(chr, keyCode)) return true;
         return super.charTyped(chr, keyCode);
     }
 
     @Override
     protected void init() {
+        // Get the last clicked block
         super.init();
 
         pos = LastClickedBlockTracker.getLastClickedPos();
-        be =(MultiRedstoneArrayBlockEntity) MinecraftClient.getInstance().world.getBlockEntity(pos);
-
-        String urlText = "";
-
-        if (be != null) {
-            urlText = be.getUrl();
+        if (MinecraftClient.getInstance().world != null) {
+            BlockEntity entity = MinecraftClient.getInstance().world.getBlockEntity(pos);
+            if (entity instanceof MultiRedstoneArrayBlockEntity mbe) {
+                this.be = mbe;
+            }
         }
 
-        if (client != null && client.player != null) {
-            Text msg = Text.literal("[DEBUG] Opening MultiRedstoneArrayScreen, URL: " + urlText);
-            client.player.sendMessage(msg, false); // false = not a system message
-        }
-
+        String urlText = be != null ? be.getUrl() : "";
         this.urlField = new TextFieldWidget(textRenderer, x + 10, y + 20, 150, 20, Text.literal("Enter URL"));
         this.urlField.setText(urlText);
         addSelectableChild(this.urlField);
 
+        // Apply button
         applyButton = ButtonWidget.builder(Text.literal("Apply"), button -> {
-                    if (be != null) {
-                        be.setUrl(this.urlField.getText());
-                        C2SUpdateUrlPayload payload = new C2SUpdateUrlPayload(pos, urlField.getText());
-                        ClientPlayNetworking.send(payload);
-                    }
-                })
-                .dimensions(x + 10, y + 45, 50, 20) // x, y, width, height
-                .build();
+            if (be != null) {
+                be.setUrl(urlField.getText());
+
+                // Send to server
+                C2SUpdateUrlPayload payload = new C2SUpdateUrlPayload(pos, urlField.getText(), be.getMode());
+                ClientPlayNetworking.send(payload);
+            }
+        }).dimensions(x + 10, y + 45, 50, 20).build();
         addDrawableChild(applyButton);
+
+        // Mode toggle button
+        modeButton = ButtonWidget.builder(Text.literal(be != null ? be.getMode().name() : "HTTP"), button -> {
+            if (be != null) {
+                if (be.getMode() == MultiRedstoneArrayBlockEntity.Mode.HTTP) {
+                    be.setMode(MultiRedstoneArrayBlockEntity.Mode.WEB_STOCK);
+                } else {
+                    be.setMode(MultiRedstoneArrayBlockEntity.Mode.HTTP);
+                }
+
+                // Update button label
+                button.setMessage(Text.literal(be.getMode().name()));
+
+                // Send mode change to server
+                C2SUpdateUrlPayload payload = new C2SUpdateUrlPayload(pos, urlField.getText(), be.getMode());
+                ClientPlayNetworking.send(payload);
+            }
+        }).dimensions(x + 70, y + 45, 80, 20).build();
+        addDrawableChild(modeButton);
     }
 
     @Override
     public void render(DrawContext drawContext, int mouseX, int mouseY, float delta) {
         drawBackground(drawContext, delta, mouseX, mouseY);
-        this.urlField.render(drawContext, mouseX, mouseY, delta);
+        urlField.render(drawContext, mouseX, mouseY, delta);
         super.render(drawContext, mouseX, mouseY, delta);
     }
 
@@ -103,7 +117,9 @@ public class MultiRedstoneArrayScreen extends HandledScreen<MultiRedstoneArraySc
     public void close() {
         super.close();
         if (be != null) {
-            be.setUrl(this.urlField.getText());
+            // Send final URL and mode to server
+            C2SUpdateUrlPayload payload = new C2SUpdateUrlPayload(pos, urlField.getText(), be.getMode());
+            ClientPlayNetworking.send(payload);
         }
     }
 }
