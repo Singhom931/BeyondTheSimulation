@@ -1,8 +1,6 @@
 package com.diablo931.client;
 
-import com.diablo931.block.ModBlock;
-import com.diablo931.block.ModBlockEntities;
-import com.diablo931.block.ModScreenHandlers;
+import com.diablo931.block.*;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;
@@ -16,10 +14,17 @@ public class beyondthesimulationClient implements ClientModInitializer {
         BlockRenderLayerMap.INSTANCE.putBlock(ModBlock.MULTI_REDSTONE_ARRAY, RenderLayer.getTranslucent());
         BlockRenderLayerMap.INSTANCE.putBlock(ModBlock.PERFUSION_SYSTEM, RenderLayer.getTranslucent());
 
+        // Explicit generics added here
         HandledScreens.register(
                 ModScreenHandlers.MULTI_REDSTONE_ARRAY_HANDLER,
-                MultiRedstoneArrayScreen::new
+                new HandledScreens.Provider<MultiRedstoneArrayScreenHandler, MultiRedstoneArrayScreen>() {
+                    @Override
+                    public MultiRedstoneArrayScreen create(MultiRedstoneArrayScreenHandler handler, net.minecraft.entity.player.PlayerInventory inv, net.minecraft.text.Text title) {
+                        return new MultiRedstoneArrayScreen(handler, inv, title);
+                    }
+                }
         );
+
         ClientInteractionHandler.register();
         BlockEntityRendererFactories.register(ModBlockEntities.PERFUSION_SYSTEM_ENTITY, PerfusionSystemRenderer::new);
     }
