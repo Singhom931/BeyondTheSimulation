@@ -1,7 +1,7 @@
 package com.diablo931.client;
 
-import com.diablo931.block.MultiRedstoneArrayBlockEntity;
-import com.diablo931.block.MultiRedstoneArrayScreenHandler;
+import com.diablo931.block.MultiRedstoneArray.MultiRedstoneArrayBlockEntity;
+import com.diablo931.block.MultiRedstoneArray.MultiRedstoneArrayScreenHandler;
 import com.diablo931.network.C2SUpdateUrlPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.block.entity.BlockEntity;

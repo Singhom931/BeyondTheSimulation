@@ -1,6 +1,7 @@
 package com.diablo931.client;
 
 import com.diablo931.block.*;
+import com.diablo931.block.MultiRedstoneArray.MultiRedstoneArrayScreenHandler;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;

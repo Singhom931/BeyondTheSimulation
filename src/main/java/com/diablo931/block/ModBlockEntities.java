@@ -1,5 +1,7 @@
 package com.diablo931.block;
 
+import com.diablo931.block.MultiRedstoneArray.MultiRedstoneArrayBlockEntity;
+import com.diablo931.block.PerfusionSystem.PerfusionSystemBlockEntity;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.registry.Registry;

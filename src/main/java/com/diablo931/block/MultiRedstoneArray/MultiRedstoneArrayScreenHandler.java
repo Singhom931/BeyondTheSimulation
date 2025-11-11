@@ -1,15 +1,11 @@
-package com.diablo931.block;
+package com.diablo931.block.MultiRedstoneArray;
 
-import net.minecraft.block.entity.BlockEntity;
+import com.diablo931.block.ModScreenHandlers;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.ScreenHandlerContext;
 import net.minecraft.screen.slot.Slot;
-import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 public class MultiRedstoneArrayScreenHandler extends ScreenHandler {

@@ -1,5 +1,6 @@
-package com.diablo931.block;
+package com.diablo931.block.PerfusionSystem;
 
+import com.diablo931.block.ModBlockEntities;
 import com.diablo931.item.ModItems;
 import com.diablo931.util.TickableBlockEntity;
 import net.minecraft.block.BlockState;

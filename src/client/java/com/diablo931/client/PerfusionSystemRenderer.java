@@ -1,9 +1,7 @@
 package com.diablo931.client;
 
-import com.diablo931.block.PerfusionSystemBlockEntity;
+import com.diablo931.block.PerfusionSystem.PerfusionSystemBlockEntity;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
@@ -11,7 +9,6 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ModelTransformationMode;
 import net.minecraft.util.math.RotationAxis;
-import org.joml.Matrix4f;
 
 
 public class PerfusionSystemRenderer implements BlockEntityRenderer<PerfusionSystemBlockEntity> {

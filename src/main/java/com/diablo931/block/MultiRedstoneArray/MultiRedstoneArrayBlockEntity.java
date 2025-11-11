@@ -1,5 +1,6 @@
-package com.diablo931.block;
+package com.diablo931.block.MultiRedstoneArray;
 
+import com.diablo931.block.ModBlockEntities;
 import com.diablo931.network.WSClient;
 import com.diablo931.util.TickableBlockEntity;
 import net.minecraft.block.Block;
@@ -12,15 +13,12 @@ import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.world.BlockView;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.entity.player.PlayerEntity;
 
 import java.io.InputStream;
-import java.net.http.WebSocket;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.UUID;

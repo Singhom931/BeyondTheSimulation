@@ -1,4 +1,4 @@
-package com.diablo931.block;
+package com.diablo931.block.PerfusionSystem;
 
 import com.diablo931.item.ModItems;
 import com.diablo931.util.TickableBlockEntity;
@@ -18,8 +18,6 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
-
-import static net.minecraft.block.AbstractBlock.createCodec;
 
 
 public class PerfusionSystemBlock extends BlockWithEntity {

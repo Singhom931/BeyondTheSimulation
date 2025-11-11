@@ -1,6 +1,6 @@
 package com.diablo931.network;
 
-import com.diablo931.block.MultiRedstoneArrayBlockEntity;
+import com.diablo931.block.MultiRedstoneArray.MultiRedstoneArrayBlockEntity;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.util.math.BlockPos;

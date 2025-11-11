@@ -1,6 +1,7 @@
 package com.diablo931.block;
 
 import com.diablo931.beyondthesimulation;
+import com.diablo931.block.PerfusionSystem.PerfusionSystemBlock;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
@@ -13,7 +14,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Identifier;
-import com.diablo931.block.MultiRedstoneArrayBlock;
+import com.diablo931.block.MultiRedstoneArray.MultiRedstoneArrayBlock;
 
 import java.util.function.Function;
 

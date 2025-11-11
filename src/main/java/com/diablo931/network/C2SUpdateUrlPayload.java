@@ -1,6 +1,6 @@
 package com.diablo931.network;
 
-import com.diablo931.block.MultiRedstoneArrayBlockEntity.Mode;
+import com.diablo931.block.MultiRedstoneArray.MultiRedstoneArrayBlockEntity.Mode;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
