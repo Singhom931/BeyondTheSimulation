@@ -1,6 +1,6 @@
 package com.diablo931.client;
 
-import com.diablo931.block.PerfusionSystemBlockEntity;
+import com.diablo931.block.PerfusionSystem.PerfusionSystemBlockEntity;
 import com.diablo931.item.ModItems;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderLayer;
