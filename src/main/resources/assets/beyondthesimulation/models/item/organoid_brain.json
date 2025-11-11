@@ -1,6 +1,65 @@
 {
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "beyondthesimulation:item/organoid_brain"
-  }
+	"format_version": "1.21.6",
+	"credit": "Made with Blockbench",
+	"texture_size": [64, 64],
+	"textures": {
+		"2": "beyondthesimulation:block/mra",
+		"particle": "beyondthesimulation:block/mra_base"
+	},
+	"elements": [
+		{
+			"from": [5.75, 2, 5.75],
+			"to": [10.25, 4.25, 10.25],
+			"rotation": {"angle": 0, "axis": "y", "origin": [6, 2, 6]},
+			"faces": {
+				"north": {"uv": [8, 6.5, 9, 7], "texture": "#2"},
+				"east": {"uv": [8, 7, 9, 7.5], "texture": "#2"},
+				"south": {"uv": [8, 7.5, 9, 8], "texture": "#2"},
+				"west": {"uv": [8, 8, 9, 8.5], "texture": "#2"},
+				"up": {"uv": [9, 5.5, 8, 4.5], "texture": "#2"},
+				"down": {"uv": [9, 5.5, 8, 6.5], "texture": "#2"}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"translation": [0, 5.5, 0]
+		},
+		"thirdperson_lefthand": {
+			"translation": [0, 5.75, 0]
+		},
+		"firstperson_righthand": {
+			"rotation": [-7.28, 2.53, 1.05],
+			"translation": [-1, 8.75, 0.5],
+			"scale": [1.44531, 1.39063, 1]
+		},
+		"firstperson_lefthand": {
+			"rotation": [-11.25, 7.5, 0],
+			"translation": [-0.5, 8.5, 0],
+			"scale": [1.2207, 1.36719, 0.93945]
+		},
+		"ground": {
+			"translation": [0, 4.75, 0],
+			"scale": [2.07, 2.07, 2.07]
+		},
+		"gui": {
+			"rotation": [19, 21, 0],
+			"translation": [0, 9.5, 0],
+			"scale": [2.5, 2.5, 2.5]
+		},
+		"head": {
+			"translation": [0, 18.25, 0],
+			"scale": [2.5, 2.5, 2.5]
+		},
+		"fixed": {
+			"rotation": [-90, 0, 0],
+			"translation": [0, 0, -12],
+			"scale": [2, 2, 2]
+		},
+		"on_shelf": {
+			"rotation": [-93, 0, 0],
+			"translation": [0, 0, -18],
+			"scale": [4, 4, 4]
+		}
+	}
 }

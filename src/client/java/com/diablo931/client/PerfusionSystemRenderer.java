@@ -1,7 +1,10 @@
 package com.diablo931.client;
 
-import com.diablo931.block.PerfusionSystem.PerfusionSystemBlockEntity;
+import com.diablo931.block.PerfusionSystemBlockEntity;
+import com.diablo931.item.ModItems;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.block.entity.BlockEntityRenderer;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
@@ -9,6 +12,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ModelTransformationMode;
 import net.minecraft.util.math.RotationAxis;
+import org.joml.Matrix4f;
 
 
 public class PerfusionSystemRenderer implements BlockEntityRenderer<PerfusionSystemBlockEntity> {
@@ -21,6 +25,9 @@ public class PerfusionSystemRenderer implements BlockEntityRenderer<PerfusionSys
         ItemStack stack = be.getDisplayedItem();
         if (stack.isEmpty()) return;
 
+        boolean isFlesh = stack.isOf(ModItems.TREATED_FLESH);
+        boolean isBrain = stack.isOf(ModItems.ORGANOID_BRAIN);
+
         MinecraftClient mc = MinecraftClient.getInstance();
         int growthTicks = be.getGrowthTicks(); // your BE field
         long worldTime = be.getWorld() == null ? 0L : be.getWorld().getTime();
@@ -28,8 +35,13 @@ public class PerfusionSystemRenderer implements BlockEntityRenderer<PerfusionSys
         float progress = Math.max(0f, Math.min(1f, growthTicks / (float) max_ticks));
 
         matrices.push();
-        matrices.translate(0.225, 0.16, 0.725); // position inside chamber
-        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(90)); // lay flat
+
+        if (isFlesh) {
+            matrices.translate(0.225, 0.16, 0.725); // position inside chamber
+            matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(90)); // lay flat
+        }else if (isBrain){
+            matrices.translate(0.2175, 0.36, 0.7825); // position inside chamber
+        }
         matrices.scale(0.5f, 0.5f, 0.5f);
 
         // Make item grow based on progress
