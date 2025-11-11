@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#N#",
+    "iHi",
+    "RPR"
+  ],
+  "key": {
+    "#": "minecraft:glass_bottle",
+    "N": "beyondthesimulation:nutrient_fluid",
+    "i": "minecraft:iron_ingot",
+    "H": "minecraft:hopper",
+    "R": "minecraft:redstone",
+    "P": "minecraft:piston"
+  },
+  "result": {
+    "id": "beyondthesimulation:perfusion_system",
+    "count": 1
+  }
+}
