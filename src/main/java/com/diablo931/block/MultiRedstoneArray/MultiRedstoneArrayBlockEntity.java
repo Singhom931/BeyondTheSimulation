@@ -175,17 +175,25 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
         }
     }
 
+    private boolean isUrlCompatibleWithMode() {
+        return switch (mode) {
+            case HTTP -> url.startsWith("http://") || url.startsWith("https://");
+            case WEB_STOCK -> url.startsWith("ws://");
+        };
+    }
+
+
     private void fetchServerOutputs() {
         if (url.isEmpty() || world == null || world.isClient) return;
 
-        // Validate URL protocol
-        if (!(url.startsWith("http://") || url.startsWith("https://") || url.startsWith("ws://"))) {
-            System.out.println("[ERROR] Invalid URL: " + url);
+        // ✅ Skip if mode and URL don't match
+        if (!isUrlCompatibleWithMode()) {
+            System.out.println("[WARN] URL and mode mismatch: " + url + " (mode=" + mode + ")");
             return;
         }
 
-        // HTTP logic
-        if (url.startsWith("http://") || url.startsWith("https://")) {
+        // ✅ Handle HTTP mode
+        if (mode == Mode.HTTP) {
             CompletableFuture.runAsync(() -> {
                 java.net.HttpURLConnection con = null;
                 try {
@@ -203,7 +211,7 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
                             processServerJson(response);
                         }
                     } else {
-                        System.out.println("[ERROR] GET failed with response code: " + responseCode);
+                        System.out.println("[ERROR] GET failed: " + responseCode);
                         markFailed();
                     }
                 } catch (Exception e) {
@@ -214,13 +222,12 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
                 }
             });
         }
-        // WebSocket logic
-        else if (url.startsWith("ws://")) {
-            // Ensure WS connection is active
+
+        // ✅ Handle WebSocket mode
+        else if (mode == Mode.WEB_STOCK) {
             initWebSocketIfNeeded();
 
             if (wsClient != null) {
-                // send payload
                 String payload = buildJsonPayload();
                 wsClient.send(payload);
                 System.out.println("[WS] Sent payload: " + payload);
