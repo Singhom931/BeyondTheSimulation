@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "###",
+    "RBR",
+    "MNM"
+  ],
+  "key": {
+    "#": "minecraft:glass",
+    "R": "minecraft:redstone",
+    "B": "beyondthesimulation:organoid_brain",
+    "N": "beyondthesimulation:nutrient_fluid",
+    "M": [
+      "minecraft:crimson_fungus",
+      "minecraft:warped_fungus",
+      "minecraft:red_mushroom",
+      "minecraft:brown_mushroom"
+    ]
+
+    },
+  "result": {
+    "id": "beyondthesimulation:multi_redstone_array",
+    "count": 1
+  }
+}
