@@ -10,6 +10,7 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
 import java.util.function.Function;
+import com.diablo931.item.Camera.CameraItem;
 import com.diablo931.beyondthesimulation; // your MOD_ID holder
 
 public class ModItems {
@@ -20,6 +21,7 @@ public class ModItems {
     public static final Item ORGANOID_BRAIN = register("organoid_brain", Item::new, new Item.Settings());
     public static final Item TREATED_FLESH = register("treated_flesh", Item::new, new Item.Settings());
     public static final Item NUTRIENT_FLUID = register("nutrient_fluid", Item::new, new Item.Settings());
+    public static final Item CAMERA = register("camera", CameraItem::new, new Item.Settings());
 
     public static Item register(String name, Function<Item.Settings, Item> itemFactory, Item.Settings settings) {
         // Create the item key.

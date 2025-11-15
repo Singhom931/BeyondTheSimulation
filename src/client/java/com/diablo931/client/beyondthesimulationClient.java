@@ -2,6 +2,7 @@ package com.diablo931.client;
 
 import com.diablo931.block.*;
 import com.diablo931.block.MultiRedstoneArray.MultiRedstoneArrayScreenHandler;
+import com.diablo931.network.SetCameraWebhookPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -10,6 +11,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
+import com.diablo931.client.CameraClientEvents;
 
 public class beyondthesimulationClient implements ClientModInitializer {
 
@@ -31,5 +33,12 @@ public class beyondthesimulationClient implements ClientModInitializer {
 
         ClientInteractionHandler.register();
         BlockEntityRendererFactories.register(ModBlockEntities.PERFUSION_SYSTEM_ENTITY, PerfusionSystemRenderer::new);
+
+
+//        PayloadTypeRegistry.playC2S().register(SetCameraWebhookPayload.ID, SetCameraWebhookPayload.CODEC);
+        CameraNetworkingClient.registerClient();
+        CameraClientEvents.register();
+
+
     }
 }
