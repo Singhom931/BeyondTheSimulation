@@ -32,14 +32,6 @@ public class beyondthesimulation implements ModInitializer {
         PayloadTypeRegistry.playC2S().register(SetCameraWebhookPayload.ID, SetCameraWebhookPayload.CODEC);
         CameraNetworking.registerServerReceivers();
         CameraComponents.register();
-        PayloadTypeRegistry.playS2C().register(CctvCapturePayload.ID, CctvCapturePayload.CODEC);
-
-        PayloadTypeRegistry.playC2S().register(CameraMouseMoveCctvPayload.ID, CameraMouseMoveCctvPayload.CODEC);
-        ServerPlayNetworking.registerGlobalReceiver(CameraMouseMoveCctvPayload.ID, (payload, ctx) -> {
-        });
-        PayloadTypeRegistry.playC2S().register(CctvSettingsPayload.ID, CctvSettingsPayload.CODEC);
-        ServerPlayNetworking.registerGlobalReceiver(CctvSettingsPayload.ID, (payload, ctx) -> { /* decodes and handled in CameraServerReceivers.register() */ });
-//        PayloadTypeRegistry.playS2C().register(EnterCctvPayload.ID, EnterCctvPayload.CODEC);
 
         LOGGER.info("BeyondTheSimulation now connecting to Higher Dimensions");
     }

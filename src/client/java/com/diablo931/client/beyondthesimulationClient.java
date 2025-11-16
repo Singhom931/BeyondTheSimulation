@@ -29,38 +29,6 @@ public class beyondthesimulationClient implements ClientModInitializer {
                 }
         );
 
-        ClientPlayNetworking.registerGlobalReceiver(
-                CctvCapturePayload.ID,
-                (payload, ctx) -> {
-                    var pos = payload.pos();
-                    var uuid = payload.uuid();
-
-                    ctx.client().execute(() -> {
-                        var player = ctx.client().player;
-                        if (player != null) {
-                            player.sendMessage(
-                                    Text.literal("CCTV captured player " + uuid + " at " + pos),
-                                    false
-                            );
-                        }
-                    });
-                }
-        );
-
-        PayloadTypeRegistry.playS2C().register(EnterCctvPayload.ID, EnterCctvPayload.CODEC);
-
-        ClientPlayNetworking.registerGlobalReceiver(EnterCctvPayload.ID, (payload, ctx) -> {
-            System.out.println("CLIENT RECEIVED ENTER_CCTV PAYLOAD!");
-
-            ctx.client().execute(() -> {
-                System.out.println("Opening CCTV screen NOW");
-
-                // Open CameraViewScreen with the received data
-                com.diablo931.client.CctvViewScreen.openCamera(ctx.client(), payload.pos(), payload.yaw(), payload.pitch(), payload.fov(), payload.range(), payload.name(), payload.webhookUrl());
-                System.out.println("After setScreen call");
-            });
-        });
-
         ClientInteractionHandler.register();
         BlockEntityRendererFactories.register(ModBlockEntities.PERFUSION_SYSTEM_ENTITY, PerfusionSystemRenderer::new);
 
