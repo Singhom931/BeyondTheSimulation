@@ -4,10 +4,14 @@ import com.diablo931.item.Camera.CameraComponents;
 import com.diablo931.network.SendCameraWebhookPayload;
 import com.diablo931.util.CryptoUtil;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemUsage;
 import net.minecraft.item.ItemUsageContext;
+import net.minecraft.item.consume.UseAction;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.*;
 import net.minecraft.world.World;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -34,7 +38,20 @@ public class CameraItem extends Item {
     }
 
     @Override
+    public UseAction getUseAction(ItemStack stack) {
+        return UseAction.SPYGLASS;
+    }
+
+    @Override
+    public int getMaxUseTime(ItemStack stack, LivingEntity player) {
+        return 72000; // same as bows, spyglass, shields
+    }
+
+    @Override
     public ActionResult use(World world, PlayerEntity player, Hand hand) {
+        player.playSound(SoundEvents.ITEM_SPYGLASS_USE, 1.0F, 1.0F);
+        player.setCurrentHand(hand);
+
         // Run server-side logic only
         if (!world.isClient && player instanceof ServerPlayerEntity serverPlayer) {
             ItemStack stack = player.getStackInHand(hand);
@@ -47,7 +64,8 @@ public class CameraItem extends Item {
             ServerPlayNetworking.send(serverPlayer, send);
         }
         // always succeed on client too (this method will run on client as well, but server already handled sending)
-        return ActionResult.SUCCESS;
+        return ItemUsage.consumeHeldItem(world, player, hand);
+        //return ActionResult.SUCCESS;
     }
 
     // --- convenience NBT helpers (store webhook inside stack NBT) ---

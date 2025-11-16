@@ -3,5 +3,6 @@
   "item.beyondthesimulation.treated_flesh" : "Treated Flesh",
   "item.beyondthesimulation.nutrient_fluid" : "Nutrient Fluid",
   "item.beyondthesimulation.multi_redstone_array" : "Multi Redstone Array",
-  "item.beyondthesimulation.perfusion_system" : "Perfusion System"
+  "item.beyondthesimulation.perfusion_system" : "Perfusion System",
+  "item.beyondthesimulation.camera" : "Camera"
 }
