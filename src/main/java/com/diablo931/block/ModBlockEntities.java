@@ -19,6 +19,9 @@ public class ModBlockEntities {
     public static final BlockEntityType<PerfusionSystemBlockEntity> PERFUSION_SYSTEM_ENTITY =
             register("perfusion_system", PerfusionSystemBlockEntity::new, ModBlock.PERFUSION_SYSTEM);
 
+    public static final BlockEntityType<PerfusionSystemBlockEntity> CCTV_ENTITY =
+            register("cctv", PerfusionSystemBlockEntity::new, ModBlock.CCTV);
+
 
     private static <T extends BlockEntity> BlockEntityType<T> register(
             String name,

@@ -2,6 +2,12 @@ package com.diablo931.client;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.ScreenshotRecorder;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.RaycastContext;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -35,14 +41,54 @@ public class ScreenshotUtil {
         );
     }
 
+    // Helper method to get targeted block position using client's hit result
+    private static String getTargetedBlockPos(MinecraftClient mc) {
+        // Fallback check to existing target is removed as it's reach-limited.
+        // We now force a long-distance manual raycast.
+
+        if (mc.player != null && mc.world != null) {
+            // Use a very long distance (e.g., 1024 blocks) for "any" distance check
+            float reachDistance = 1024.0f;
+
+            Vec3d cameraPos = mc.player.getCameraPosVec(1.0f);
+            Vec3d rotationVec = mc.player.getRotationVec(1.0f);
+            Vec3d endVec = cameraPos.add(rotationVec.x * reachDistance, rotationVec.y * reachDistance, rotationVec.z * reachDistance);
+
+            BlockHitResult newHit = mc.world.raycast(new RaycastContext(
+                    cameraPos,
+                    endVec,
+                    RaycastContext.ShapeType.OUTLINE,
+                    RaycastContext.FluidHandling.NONE,
+                    mc.player
+            ));
+
+            if (newHit.getType() == HitResult.Type.BLOCK) {
+                BlockPos pos = newHit.getBlockPos();
+                return String.format("%d, %d, %d", pos.getX(), pos.getY(), pos.getZ());
+            }
+
+            if (newHit.getType() == HitResult.Type.MISS) {
+                return "None (looking at air within 1024 blocks)";
+            }
+        }
+
+        return "None (no target data available)";
+    }
+
     public static void captureAndSend(String webhook) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        PlayerEntity player = mc.player;
+        String playerName = (player != null) ? player.getName().getString() : "Unknown Player";
+        String playerPos = (player != null) ? String.format("%.1f, %.1f, %.1f", player.getX(), player.getY(), player.getZ()) : "N/A";
+        String targetedBlockPos = getTargetedBlockPos(mc);
+
         captureScreenshot(file -> {
             System.out.println("Uploading screenshot to: " + webhook);
-            sendToWebhook(file, webhook);
+            sendToWebhook(file, webhook, playerName, playerPos, targetedBlockPos);
         });
     }
 
-    private static void sendToWebhook(File file, String webhookUrl) {
+    private static void sendToWebhook(File file, String webhookUrl, String playerName, String playerPos, String targetedBlockPos) {
         String boundary = "----MinecraftScreenshotBoundary";
 
         try {
@@ -57,7 +103,9 @@ public class ScreenshotUtil {
             // TEXT MESSAGE PART
             writer.append("--").append(boundary).append("\r\n");
             writer.append("Content-Disposition: form-data; name=\"content\"\r\n\r\n");
-            writer.append("📸 Minecraft Camera Screenshot").append("\r\n");
+            writer.append("> **Player:** ").append(playerName).append("\n");
+            writer.append("> **Photo Clicked at:** ").append(playerPos).append("\n");
+            writer.append("> **Looking at :** ").append(targetedBlockPos).append("\r\n");
 
             // FILE PART
             writer.append("--").append(boundary).append("\r\n");
