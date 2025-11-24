@@ -18,6 +18,7 @@ public class ServerUpdateUrlReceiver implements ServerPlayNetworking.PlayPayload
                 if (blockEntity instanceof MultiRedstoneArrayBlockEntity mbe) {
                     mbe.setUrl(payload.url());
                     mbe.setMode(payload.mode()); // <-- this ensures mode is synced
+                    mbe.setMqttType(payload.mqttType());
                     mbe.markDirty();
                 }
             }

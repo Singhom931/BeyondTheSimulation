@@ -1,13 +1,14 @@
 package com.diablo931.network;
 
 import com.diablo931.block.MultiRedstoneArray.MultiRedstoneArrayBlockEntity.Mode;
+import com.diablo931.block.MultiRedstoneArray.MultiRedstoneArrayBlockEntity.MqttType; // <-- added
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
-public record C2SUpdateUrlPayload(BlockPos pos, String url, Mode mode) implements CustomPayload {
+public record C2SUpdateUrlPayload(BlockPos pos, String url, Mode mode, MqttType mqttType) implements CustomPayload {
 
     public static final CustomPayload.Id<C2SUpdateUrlPayload> ID =
             new CustomPayload.Id<>(Identifier.of("beyondthesimulation", "update_url"));
@@ -17,7 +18,8 @@ public record C2SUpdateUrlPayload(BlockPos pos, String url, Mode mode) implement
 
     // Deserialize from buffer
     public C2SUpdateUrlPayload(PacketByteBuf buf) {
-        this(buf.readBlockPos(), buf.readString(), Mode.valueOf(buf.readString()));
+        this(buf.readBlockPos(), buf.readString(), Mode.valueOf(buf.readString()), MqttType.valueOf(buf.readString())
+        );
     }
 
     // Serialize to buffer
@@ -25,6 +27,7 @@ public record C2SUpdateUrlPayload(BlockPos pos, String url, Mode mode) implement
         buf.writeBlockPos(this.pos);
         buf.writeString(this.url);
         buf.writeString(this.mode.name());
+        buf.writeString(this.mqttType.name());
     }
 
     @Override

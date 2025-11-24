@@ -23,6 +23,9 @@ public class MultiRedstoneArrayScreen extends HandledScreen<MultiRedstoneArraySc
     private ButtonWidget applyButton;
     private ButtonWidget modeButton;
 
+    private ButtonWidget mqttTypeButton;
+    private MultiRedstoneArrayBlockEntity.MqttType tempMqttType = MultiRedstoneArrayBlockEntity.MqttType.SUBSCRIBE;
+
     public MultiRedstoneArrayScreen(MultiRedstoneArrayScreenHandler handler, PlayerInventory inv, Text title) {
         super(handler, inv, title);
         this.backgroundWidth = 176;
@@ -61,7 +64,7 @@ public class MultiRedstoneArrayScreen extends HandledScreen<MultiRedstoneArraySc
         applyButton = ButtonWidget.builder(Text.literal("Apply"), button -> {
             if (be != null) {
                 be.setUrl(urlField.getText());
-                C2SUpdateUrlPayload payload = new C2SUpdateUrlPayload(pos, urlField.getText(), be.getMode());
+                C2SUpdateUrlPayload payload = new C2SUpdateUrlPayload(pos, urlField.getText(), be.getMode(), be.getMqttType());
                 ClientPlayNetworking.send(payload);
             }
         }).dimensions(x + 10, y + 50, 50, 20).build();
@@ -70,17 +73,80 @@ public class MultiRedstoneArrayScreen extends HandledScreen<MultiRedstoneArraySc
         // Mode toggle button
         modeButton = ButtonWidget.builder(Text.literal(be != null ? be.getMode().name() : "HTTP"), button -> {
             if (be != null) {
-                be.setMode(be.getMode() == MultiRedstoneArrayBlockEntity.Mode.HTTP
-                        ? MultiRedstoneArrayBlockEntity.Mode.WEB_STOCK
-                        : MultiRedstoneArrayBlockEntity.Mode.HTTP);
+                MultiRedstoneArrayBlockEntity.Mode newMode =
+                switch (be.getMode()) {
+                    case MQTT -> MultiRedstoneArrayBlockEntity.Mode.HTTP;
+                    case HTTP -> MultiRedstoneArrayBlockEntity.Mode.WEB_STOCK;
+                    default -> MultiRedstoneArrayBlockEntity.Mode.MQTT;
+                };
+                be.setMode(newMode);
                 button.setMessage(Text.literal(be.getMode().name()));
 
+                updateFieldForMode();
+
                 // Send update to server
-                C2SUpdateUrlPayload payload = new C2SUpdateUrlPayload(pos, urlField.getText(), be.getMode());
+                C2SUpdateUrlPayload payload = new C2SUpdateUrlPayload(pos, urlField.getText(), be.getMode(), be.getMqttType());
                 ClientPlayNetworking.send(payload);
             }
         }).dimensions(x + 70, y + 50, 80, 20).build();
         addDrawableChild(modeButton);
+
+        // MQTT Type toggle button (Publish / Subscribe)
+        mqttTypeButton = ButtonWidget.builder(
+                Text.literal(be != null ? be.getMqttType().name() : "SUBSCRIBE"),
+                btn -> {
+                    if (be != null) {
+                        MultiRedstoneArrayBlockEntity.MqttType newType =
+                                (be.getMqttType() == MultiRedstoneArrayBlockEntity.MqttType.SUBSCRIBE)
+                                        ? MultiRedstoneArrayBlockEntity.MqttType.PUBLISH
+                                        : MultiRedstoneArrayBlockEntity.MqttType.SUBSCRIBE;
+
+                        be.setMqttType(newType);
+                        btn.setMessage(Text.literal(newType.name()));
+
+                        // Sync change to server immediately
+                        C2SUpdateUrlPayload payload = new C2SUpdateUrlPayload(
+                                pos,
+                                urlField.getText(),
+                                be.getMode(),
+                                newType
+                        );
+                        ClientPlayNetworking.send(payload);
+                    }
+                }
+        ).dimensions(x + 160, y + 50, 60, 20).build();
+
+        addDrawableChild(mqttTypeButton);
+        mqttTypeButton.visible = false;
+
+        updateMQTTVisibility();
+    }
+
+    /** Adjusts URL field label & behavior depending on selected mode */
+    private void updateFieldForMode() {
+        if (be == null) return;
+
+        switch (be.getMode()) {
+            case MQTT -> {
+                urlField.setPlaceholder(Text.literal("Enter Topic"));
+                urlField.setText(be.getUrl());
+            }
+            default -> {
+                urlField.setPlaceholder(Text.literal("Enter URL"));
+                urlField.setText(be.getUrl());
+            }
+        }
+        updateMQTTVisibility();
+    }
+
+    /** Show / hide MQTT settings when not in MQTT mode */
+    private void updateMQTTVisibility() {
+//        if (mqttTypeButton == null || be == null) return;
+
+        boolean visible = be.getMode() == MultiRedstoneArrayBlockEntity.Mode.MQTT;
+
+        mqttTypeButton.visible = visible;
+        mqttTypeButton.active = visible;
     }
 
     @Override
@@ -121,6 +187,10 @@ public class MultiRedstoneArrayScreen extends HandledScreen<MultiRedstoneArraySc
         // Let TextFieldWidget handle movement, deletion, typing, etc.
         if (urlField.keyPressed(keyCode, scanCode, modifiers)) return true;
 
+        if (client != null && client.options.inventoryKey.matchesKey(keyCode,scanCode)) {
+            return true; // Ignore it so screen does not close
+        }
+
         // Optional: Ctrl+V (paste)
         if ((modifiers & 2) != 0 && keyCode == 86) {
             String clipboard = MinecraftClient.getInstance().keyboard.getClipboard();
@@ -148,7 +218,7 @@ public class MultiRedstoneArrayScreen extends HandledScreen<MultiRedstoneArraySc
     public void close() {
         super.close();
         if (be != null) {
-            C2SUpdateUrlPayload payload = new C2SUpdateUrlPayload(pos, urlField.getText(), be.getMode());
+            C2SUpdateUrlPayload payload = new C2SUpdateUrlPayload(pos, urlField.getText(), be.getMode(), be.getMqttType());
             ClientPlayNetworking.send(payload);
         }
     }

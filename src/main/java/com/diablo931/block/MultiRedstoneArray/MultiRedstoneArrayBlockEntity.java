@@ -24,6 +24,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+// --- Added imports for MQTT and concurrent maps ---
+import org.eclipse.paho.client.mqttv3.IMqttClient;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import java.util.concurrent.ConcurrentHashMap;
+
 
 public class MultiRedstoneArrayBlockEntity extends BlockEntity implements TickableBlockEntity, NamedScreenHandlerFactory {
 
@@ -42,6 +49,27 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
             Direction.WEST, "west"
     );
 
+    // ---------------------------------------------------------------------
+    // MQTT Support Additions
+    // ---------------------------------------------------------------------
+
+    public enum MqttType {
+        PUBLISH,
+        SUBSCRIBE
+    }
+
+    public enum Mode {
+        HTTP,
+        WEB_STOCK,
+        MQTT
+    }
+
+    private Mode mode = Mode.MQTT;
+    private MqttType mqttType = MqttType.SUBSCRIBE;
+
+    public static final String MQTT_BROKER = "tcp://broker.hivemq.com:1883";
+
+
     private final Map<Direction, Integer> inputSignals = new EnumMap<>(Direction.class);
     private final Map<Direction, Integer> outputSignals = new EnumMap<>(Direction.class);
 
@@ -56,6 +84,17 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
     private volatile boolean api_is_working = true;
 //    private String uniqueId = java.util.UUID.randomUUID().toString().replace("-", "");
 
+    // --- MQTT runtime fields (added) ---
+    private IMqttClient mqttClient = null;
+    private volatile boolean mqttConnected = false;
+
+    /**
+     * mqttContributions:
+     * topic -> publisherId -> EnumMap<Direction,Integer>
+     * We keep per-publisher contributions so we can recompute merged = max(...) when publishers update.
+     */
+    private final Map<String, Map<String, EnumMap<Direction, Integer>>> mqttContributions = new ConcurrentHashMap<>();
+
 
     public MultiRedstoneArrayBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.MULTI_REDSTONE_ARRAY_ENTITY, pos, state);
@@ -64,14 +103,6 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
     public String getUrl() { return url; }
     public void setUrl(String url) { this.url = url; markDirty(); }
 
-
-    // Add this at the top of your class (after other fields)
-    public enum Mode {
-        HTTP,
-        WEB_STOCK
-    }
-
-    private Mode mode = Mode.HTTP; // default mode
 
     public Mode getMode() {
         return mode;
@@ -82,12 +113,16 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
         markDirty();
     }
 
+    public void setMqttType(MqttType t) { mqttType = t; markDirty(); }
+    public MqttType getMqttType() { return mqttType; }
+
     @Override
     protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
         super.readNbt(nbt, registries);
         url = nbt.getString("url");
         if (nbt.contains("UniqueId")) uniqueId = nbt.getUuid("UniqueId");
         if (nbt.contains("mode")) mode = Mode.valueOf(nbt.getString("mode")); // <-- load mode
+        if (nbt.contains("mqttType")) mqttType = MqttType.valueOf(nbt.getString("mqttType")); // <-- load mqtt type
     }
 
     @Override
@@ -96,6 +131,7 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
         nbt.putString("url", url == null ? "" : url);
         nbt.putUuid("UniqueId", uniqueId);
         nbt.putString("mode", mode.name()); // <-- save mode
+        nbt.putString("mqttType", mqttType.name()); // <-- save mqtt type
     }
 
     @Override
@@ -179,6 +215,7 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
         return switch (mode) {
             case HTTP -> url.startsWith("http://") || url.startsWith("https://");
             case WEB_STOCK -> url.startsWith("ws://");
+            case MQTT -> !url.isBlank();
         };
     }
 
@@ -233,6 +270,12 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
                 System.out.println("[WS] Sent payload: " + payload);
             }
         }
+
+        // ✅ Handle MQTT mode (ensure connection and subscription if needed)
+        else if (mode == Mode.MQTT) {
+            ensureMqttConnectionIfNeeded();
+            // Note: we do not publish here; publishing happens only on change via sendSignalsToServer()
+        }
     }
 
     // Shared method to process JSON for both HTTP and WebSocket
@@ -269,6 +312,78 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
         }
     }
 
+    // Handle incoming MQTT payloads (topic + payload) ---
+    private void handleMqttMessage(String topic, String payload) {
+        try {
+            com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(payload).getAsJsonObject();
+
+            // Expecting the same payload shape produced by buildJsonPayload():
+            // { "id": "<uuid>", "pos": {...}, "signals": { "north": 1, "south": 0, ... } }
+            if (!json.has("id") || !json.has("signals")) {
+                return;
+            }
+
+            String publisherId = json.get("id").getAsString();
+            com.google.gson.JsonObject signals = json.getAsJsonObject("signals");
+
+            // Update contribution map for this topic and publisher
+            mqttContributions.computeIfAbsent(topic, t -> new ConcurrentHashMap<>());
+            Map<String, EnumMap<Direction, Integer>> topicMap = mqttContributions.get(topic);
+
+            EnumMap<Direction, Integer> pubMap = topicMap.computeIfAbsent(publisherId, k -> new EnumMap<>(Direction.class));
+
+            // Fill publisher's contribution
+            for (Map.Entry<String, com.google.gson.JsonElement> e : signals.entrySet()) {
+                String apiDir = e.getKey().toLowerCase();
+                Direction dir = API_TO_MC.get(apiDir);
+                if (dir != null) {
+                    int power = e.getValue().getAsInt();
+                    pubMap.put(dir, power);
+                }
+            }
+
+            // Recompute merged maximums for topic
+            EnumMap<Direction, Integer> merged = new EnumMap<>(Direction.class);
+            // initialize merged with zeros
+            merged.put(Direction.NORTH, 0);
+            merged.put(Direction.EAST, 0);
+            merged.put(Direction.SOUTH, 0);
+            merged.put(Direction.WEST, 0);
+
+            for (Map.Entry<String, EnumMap<Direction, Integer>> pubEntry : topicMap.entrySet()) {
+                EnumMap<Direction, Integer> contrib = pubEntry.getValue();
+                for (Direction d : contrib.keySet()) {
+                    int v = contrib.getOrDefault(d, 0);
+                    int old = merged.getOrDefault(d, 0);
+                    if (v > old) merged.put(d, v);
+                }
+            }
+
+            // Apply merged values to this block's outputs if this block is subscribed to this topic
+            if (world != null && !world.isClient) {
+                world.getServer().execute(() -> {
+                    // Only update this block if its topic matches and it's in SUBSCRIBE mode
+                    if (mode == Mode.MQTT && mqttType == MqttType.SUBSCRIBE && topic.equals(this.url)) {
+                        for (Map.Entry<Direction, Integer> me : merged.entrySet()) {
+                            Direction dir = me.getKey();
+                            int newPower = me.getValue();
+                            int oldPower = outputSignals.getOrDefault(dir, 0);
+                            if (oldPower != newPower) {
+                                setPowerForDirection(dir, newPower);
+                                updateNeighborRedstone(dir, newPower);
+                                System.out.println("[MQTT UPDATE] " + dir + " power: " + oldPower + " -> " + newPower + " from topic " + topic);
+                            }
+                        }
+                    }
+                });
+            }
+
+        } catch (Exception ex) {
+            System.out.println("[MQTT] Failed to handle message: " + ex);
+        }
+    }
+
+
     private boolean inputSignalsChanged() {
         // Compare current input directions with last sent values
         boolean changed = false;
@@ -295,6 +410,13 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
 
     private void sendSignalsToServer() {
         if (world == null || world.isClient || url.isEmpty()) return;
+
+        // If MQTT & PUBLISH, publish via MQTT instead of HTTP POST
+        if (mode == Mode.MQTT && mqttType == MqttType.PUBLISH) {
+            String payload = buildJsonPayload();
+            mqttPublish(payload);
+            return;
+        }
 
         CompletableFuture.runAsync(() -> {
             java.net.HttpURLConnection con = null;
@@ -381,4 +503,90 @@ public class MultiRedstoneArrayBlockEntity extends BlockEntity implements Tickab
         world.updateNeighbors(pos, this.getCachedState().getBlock());
         world.updateNeighborsAlways(neighborPos, neighbor.getBlock());
     }
+
+    // --- MQTT helpers (added) ---
+    private void ensureMqttConnectionIfNeeded() {
+        try {
+            if (mqttClient != null && mqttClient.isConnected()) {
+                mqttConnected = true;
+                // Ensure subscription state matches
+                if (mqttType == MqttType.SUBSCRIBE && url != null && !url.isBlank()) {
+                    // subscribe to topic (idempotent)
+                    mqttClient.subscribe(url, (topic, msg) -> {
+                        String payload = new String(msg.getPayload());
+                        handleMqttMessage(topic, payload);
+                    });
+                }
+                return;
+            }
+
+            // Create & connect
+            String clientId = "mc-" + uniqueId.toString();
+            mqttClient = new MqttClient(MQTT_BROKER, clientId);
+            MqttConnectOptions opts = new MqttConnectOptions();
+            opts.setAutomaticReconnect(true);
+            opts.setCleanSession(true);
+            mqttClient.connect(opts);
+            mqttConnected = true;
+            System.out.println("[MQTT] Connected to " + MQTT_BROKER);
+
+            // Subscribe if necessary
+            if (mqttType == MqttType.SUBSCRIBE && url != null && !url.isBlank()) {
+                mqttClient.subscribe(url, (topic, msg) -> {
+                    String payload = new String(msg.getPayload());
+                    handleMqttMessage(topic, payload);
+                });
+                System.out.println("[MQTT] Subscribed to topic: " + url);
+            }
+        } catch (Exception e) {
+            mqttConnected = false;
+            System.out.println("[MQTT] Connection/subscribe failed: " + e);
+        }
+    }
+
+    private void mqttPublish(String json) {
+        try {
+            if (!mqttConnected || mqttClient == null) {
+                // Try to connect quickly and then publish
+                ensureMqttConnectionIfNeeded();
+            }
+            if (mqttClient != null && mqttClient.isConnected() && url != null && !url.isBlank()) {
+                MqttMessage m = new MqttMessage(json.getBytes());
+                m.setQos(0);
+                m.setRetained(false);
+                mqttClient.publish(url, m);
+                System.out.println("[MQTT] Published to " + url + ": " + json);
+            } else {
+                System.out.println("[MQTT] Not connected or invalid topic, cannot publish");
+            }
+        } catch (Exception e) {
+            System.out.println("[MQTT] Publish failed: " + e);
+        }
+    }
+
+    private void closeMqtt() {
+        try {
+            if (mqttClient != null && mqttClient.isConnected()) {
+                mqttClient.disconnect();
+            }
+            if (mqttClient != null) {
+                mqttClient.close();
+            }
+        } catch (Exception e) {
+            System.out.println("[MQTT] Cleanup failed: " + e);
+        }
+    }
+
+    @Override
+    public void markRemoved() {
+        super.markRemoved();
+        closeMqtt();
+    }
+
+    @Override
+    public void cancelRemoval() {
+        super.cancelRemoval();
+    }
+
+
 }

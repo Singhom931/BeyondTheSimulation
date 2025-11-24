@@ -24,8 +24,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class MultiRedstoneArrayBlock extends BlockWithEntity {
 
-    public static final IntProperty STAGE = IntProperty.of("stage", 0, 1);
-
+    public static final IntProperty STAGE = IntProperty.of("stage", 0, 2);
 
     public MultiRedstoneArrayBlock(Settings settings) {
         super(settings);
