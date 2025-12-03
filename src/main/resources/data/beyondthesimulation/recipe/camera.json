@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "iPi",
+    "iSi",
+    "iRi"
+  ],
+  "key": {
+    "i": "minecraft:iron_ingot",
+    "P": "beyondthesimulation:treated_flesh",
+    "S": "minecraft:spider_eye",
+    "R": "minecraft:redstone"
+  },
+  "result": {
+    "id": "beyondthesimulation:camera",
+    "count": 1
+  }
+}
